@@ -59,6 +59,18 @@ export function GameArena() {
     let resizeObserver: ResizeObserver | undefined;
     let app: Application | undefined;
 
+    const keysPressed = new Set<string>();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      keysPressed.add(event.code);
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      keysPressed.delete(event.code);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    console.log(keysPressed);
+
     const initialize = async () => {
       try {
         const [shipTexture, islandTexture] = await Promise.all([
@@ -133,6 +145,8 @@ export function GameArena() {
         if (host.contains(app.canvas)) host.removeChild(app.canvas);
         app.destroy(true, { children: true });
       }
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
