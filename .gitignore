@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Playwright output
+playwright-report/
+test-results/
+blob-report/
+
+# TypeScript build metadata
+*.tsbuildinfo

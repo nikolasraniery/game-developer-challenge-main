@@ -1,0 +1,385 @@
+:root {
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+  color: #f4efe1;
+  background: #071c2a;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  --color-ink: #f4efe1;
+  --color-muted: #a4b7b7;
+  --color-gold: #edbf62;
+  --color-panel: #102a38;
+  --color-line: rgb(235 231 211 / 12%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(ellipse at 82% 0%, rgb(30 85 92 / 24%), transparent 35rem), #071c2a;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #f4ce7e;
+  outline-offset: 4px;
+}
+
+.page-shell {
+  width: min(1200px, calc(100% - 48px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 25px 0 20px;
+}
+
+.site-header,
+.site-footer,
+.arena-heading-row,
+.api-result,
+.render-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-header {
+  height: 44px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand img {
+  display: block;
+  width: 148px;
+  max-height: 34px;
+}
+
+.build-label,
+.eyebrow,
+.section-kicker {
+  color: var(--color-gold);
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.build-label {
+  padding: 8px 11px;
+  border: 1px solid rgb(237 191 98 / 25%);
+  border-radius: 999px;
+  background: rgb(237 191 98 / 6%);
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 223px;
+  padding: 29px 5px 20px;
+}
+
+.hero-copy {
+  max-width: 640px;
+}
+
+.eyebrow {
+  margin: 0 0 13px;
+  color: #79aaa3;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2 {
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+}
+
+h1 {
+  margin-bottom: 11px;
+  font-size: clamp(2.7rem, 6vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+}
+
+.hero-description {
+  max-width: 590px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.03rem;
+  line-height: 1.65;
+}
+
+.hero-title-art {
+  width: min(31%, 320px);
+  margin: 8px 4px 0 24px;
+  filter: drop-shadow(0 13px 20px rgb(0 0 0 / 30%));
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.arena-card,
+.api-card,
+.arena-loading {
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 17px;
+  background: linear-gradient(145deg, rgb(19 47 61 / 96%), rgb(12 35 48 / 96%));
+  box-shadow: 0 18px 44px rgb(0 0 0 / 16%);
+}
+
+.arena-card {
+  padding: 19px;
+}
+
+.arena-loading {
+  display: grid;
+  min-height: 500px;
+  margin: 0;
+  place-content: center;
+  border: 1px solid var(--color-line);
+  border-radius: 17px;
+  color: #c3d4cf;
+}
+
+.arena-heading-row {
+  min-height: 44px;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.section-kicker {
+  margin-bottom: 4px;
+  color: #76a6a0;
+  font-size: 0.6rem;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 1.18rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.render-badge {
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  color: #c7d0c4;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.render-badge.is-ready {
+  border-color: rgb(109 195 149 / 25%);
+  color: #a6e2b8;
+}
+
+.status-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #73cf9a;
+  box-shadow: 0 0 10px rgb(115 207 154 / 50%);
+}
+
+.arena-frame {
+  position: relative;
+  height: clamp(250px, 35vw, 390px);
+  overflow: hidden;
+  border: 1px solid rgb(204 229 208 / 14%);
+  border-radius: 11px;
+  background: #0a3549;
+}
+
+.arena-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.arena-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 24px;
+  color: #c3d4cf;
+  text-align: center;
+}
+
+.arena-caption {
+  margin: 11px 2px 0;
+  color: #91a8a7;
+  font-size: 0.76rem;
+}
+
+.api-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+}
+
+.api-card h2 {
+  margin-bottom: 18px;
+}
+
+.api-card > p {
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.api-result {
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgb(115 207 154 / 18%);
+  border-radius: 11px;
+  background: rgb(115 207 154 / 5%);
+}
+
+.api-result .status-indicator {
+  margin-top: 6px;
+}
+
+.api-result p {
+  flex: 1 1 150px;
+  margin: 0;
+  color: #c7d6cc;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.api-result code {
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgb(7 28 42 / 70%);
+  color: #8dc9a6;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+.status-error {
+  color: #ffb5a7 !important;
+}
+
+.site-footer {
+  gap: 16px;
+  padding: 19px 2px 0;
+  color: #81989b;
+  font-size: 0.7rem;
+}
+
+@media (max-width: 760px) {
+  .page-shell {
+    width: min(100% - 28px, 600px);
+    padding-top: 16px;
+  }
+
+  .hero {
+    min-height: 190px;
+    padding-top: 28px;
+  }
+
+  .hero-title-art {
+    width: 27%;
+    margin-right: 0;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .api-card {
+    min-height: 185px;
+  }
+
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand img {
+    width: 124px;
+  }
+
+  .build-label {
+    font-size: 0.55rem;
+  }
+
+  .hero {
+    min-height: 190px;
+  }
+
+  .hero-description {
+    max-width: 340px;
+    font-size: 0.9rem;
+  }
+
+  .hero-title-art {
+    position: absolute;
+    right: 0;
+    bottom: 14px;
+    width: 105px;
+    opacity: 0.7;
+  }
+
+  .arena-card {
+    padding: 14px;
+  }
+
+  .arena-frame {
+    height: 260px;
+  }
+
+  .render-badge {
+    padding: 7px;
+    font-size: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
