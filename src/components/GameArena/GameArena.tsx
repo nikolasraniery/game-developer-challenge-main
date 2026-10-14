@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Application, Assets, Graphics, Sprite, Texture } from 'pixi.js';
+import { Application, Assets, Graphics, Sprite, Texture, Ticker } from 'pixi.js';
 import shipAsset from '../../../assets/png/default/ships/ship_1.png?url';
 import islandAsset from '../../../assets/png/default/tiles/tile_50.png?url';
+
+type Position = {
+  x: number;
+  y: number;
+};
 
 function drawPreview(
   app: Application,
@@ -69,7 +74,7 @@ export function GameArena() {
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    console.log(keysPressed);
+
 
     const initialize = async () => {
       try {
@@ -104,13 +109,85 @@ export function GameArena() {
         ship.anchor.set(0.5);
         ship.width = 50;
         ship.height = 70;
-        ship.rotation = 0.28;
+        ship.rotation = 0.01;
+        const shipRadius = Math.sqrt(Math.pow((ship.width / 2), 2) + Math.pow((ship.height / 2), 2));
 
         const islands = [new Sprite(islandTexture), new Sprite(islandTexture)];
+        let islandRadius: number;
         for (const island of islands) {
           island.anchor.set(0.5);
+          islandRadius = Math.sqrt(Math.pow((island.width / 2), 2) + Math.pow((island.height / 2), 2));
         }
         app.stage.addChild(background, ...islands, ship);
+
+        const updatePlayer = (ticker: Ticker) => {
+          const deltaSeconds = ticker.deltaMS / 1000;
+          const rotationSpeed = 2;
+          const movementSpeed = 100;
+          const previousX = ship.x;
+          const previousY = ship.y;
+
+          const halfWidth =
+            (Math.abs(Math.cos(ship.rotation)) * ship.width +
+              Math.abs(Math.sin(ship.rotation)) * ship.height) / 2;
+
+          const halfHeight =
+            (Math.abs(Math.sin(ship.rotation)) * ship.width +
+              Math.abs(Math.cos(ship.rotation)) * ship.height) / 2;
+
+
+          if (keysPressed.has('ArrowRight') || keysPressed.has('KeyD')) {
+            ship.rotation += rotationSpeed * deltaSeconds;
+          };
+
+          if (keysPressed.has('ArrowLeft') || keysPressed.has('KeyA')) {
+            ship.rotation -= rotationSpeed * deltaSeconds;
+          };
+
+          if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) {
+            const directionX = -Math.sin(ship.rotation);
+            const directionY = Math.cos(ship.rotation);
+
+
+
+            ship.x += directionX * movementSpeed * deltaSeconds;
+            ship.y += directionY * movementSpeed * deltaSeconds;
+
+            for (const island of islands) {
+              if (checkCollision(
+                { x: ship.x, y: ship.y },
+                shipRadius * 0.65,
+                { x: island.x, y: island.y },
+                islandRadius * 0.65
+              )) {
+                ship.x = previousX;
+                ship.y = previousY;
+              }
+            }
+          };
+
+          ship.x = Math.max(
+            halfWidth,
+            Math.min(app!.screen.width - halfWidth, ship.x),
+          );
+
+          ship.y = Math.max(
+            halfHeight,
+            Math.min(app!.screen.height - halfHeight, ship.y),
+          );
+        };
+
+        function checkCollision(positionA: Position, radiusA: number, positionB: Position, radiusB: number): boolean {
+          const objectsDistance = Math.sqrt(Math.pow((positionB.x - positionA.x), 2) + Math.pow((positionB.y - positionA.y), 2));
+
+          if ((radiusA + radiusB) >= objectsDistance) {
+            return true;
+          };
+          return false;
+        };
+
+        app.ticker.add(updatePlayer);
+        app.start();
 
         const resize = () => {
           if (!app || cancelled) return;
