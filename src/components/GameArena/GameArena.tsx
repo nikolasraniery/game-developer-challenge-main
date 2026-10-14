@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Application, Assets, Graphics, Sprite, Texture, Ticker } from 'pixi.js';
+import { Application, Assets, Graphics, Sprite, Texture, Ticker, Text } from 'pixi.js';
 import shipAsset from '../../../assets/png/default/ships/ship_1.png?url';
 import islandAsset from '../../../assets/png/default/tiles/tile_50.png?url';
 
 type Position = {
   x: number;
   y: number;
+};
+
+type Projectile = {
+  graphic: Graphics;
+  directionX: number;
+  directionY: number;
 };
 
 function drawPreview(
@@ -63,6 +69,8 @@ export function GameArena() {
     let cancelled = false;
     let resizeObserver: ResizeObserver | undefined;
     let app: Application | undefined;
+    let respawnTimeout: number | undefined;
+    let shooterRespawnTimeout: number | undefined;
 
     const keysPressed = new Set<string>();
 
@@ -74,7 +82,6 @@ export function GameArena() {
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-
 
     const initialize = async () => {
       try {
@@ -105,23 +112,244 @@ export function GameArena() {
         host.appendChild(app.canvas);
 
         const background = new Graphics();
+
+        const projectiles: Projectile[] = [];
+        const shooterProjectiles: Projectile[] = [];
+
+        const projectileSpeed = 300;
+        const shooterProjectileSpeed = 220;
+        const shooterFireInterval = 1.5;
+        let shooterFireCooldown = 1.0;
+
+        const contactDamage = 1;
+        const damageCooldownDuration = 1;
+        let damageCooldown = 0;
+
+        const cheaserSpeed = 45;
+        let spaceWasPressed = false;
         const ship = new Sprite(shipTexture);
         ship.anchor.set(0.5);
         ship.width = 50;
         ship.height = 70;
         ship.rotation = 0.01;
-        const shipRadius = Math.sqrt(Math.pow((ship.width / 2), 2) + Math.pow((ship.height / 2), 2));
+        let playerHealth = 5;
+        let isGameOver = false;
+        const shipRadius = Math.sqrt(Math.pow(ship.width / 2, 2) + Math.pow(ship.height / 2, 2));
+
+        const cheaser = new Sprite(shipTexture);
+        cheaser.anchor.set(0.5);
+        cheaser.width = 50;
+        cheaser.height = 70;
+        cheaser.position.set(app.screen.width * 0.75, app.screen.height * 0.5);
+        let cheaserHealth = 3;
+        const shooter = new Sprite(shipTexture);
+        shooter.anchor.set(0.5);
+        shooter.width = 50;
+        shooter.height = 70;
+        shooter.position.set(app.screen.width * 0.75, app.screen.height * 0.25);
+        shooter.tint = 0xffa04a;
+
+        let shooterHealth = 3;
+        const shooterRadius = Math.sqrt(
+          Math.pow(shooter.width / 2, 2) + Math.pow(shooter.height / 2, 2),
+        );
+        let score = 0;
+        const scoreText = new Text({
+          text: `Pontuação: ${score}`,
+          style: {
+            fill: '#ffffff',
+            fontSize: 20,
+          },
+        });
+        scoreText.position.set(30, 30);
+        const healthText = new Text({
+          text: `Vida: ${playerHealth}`,
+          style: {
+            fill: '#ffffff',
+            fontSize: 20,
+          },
+        });
+        healthText.position.set(30, 60);
+        const gameOverText = new Text({
+          text: 'GAME OVER',
+          style: {
+            fill: '#ff5555',
+            fontSize: 42,
+            fontWeight: 'bold',
+          },
+        });
+
+        gameOverText.anchor.set(0.5);
+        gameOverText.position.set(app.screen.width / 2, app.screen.height / 2);
+        gameOverText.visible = false;
+
+        function endGame() {
+          if (isGameOver) return;
+
+          isGameOver = true;
+          gameOverText.visible = true;
+        }
+
+        const cheaserRadius = Math.sqrt(
+          Math.pow(cheaser.width / 2, 2) + Math.pow(cheaser.height / 2, 2),
+        );
+
+        function respawnCheaser() {
+          respawnTimeout = window.setTimeout(() => {
+            if (cancelled || !app || isGameOver) return;
+
+            const position = getRandomEnemyPosition(cheaserRadius, shooter);
+
+            if (!position) return;
+
+            cheaser.position.set(position.x, position.y);
+
+            cheaserHealth = 3;
+            app.stage.addChild(cheaser);
+          }, 800);
+        }
+
+        function respawnShooter() {
+          shooterRespawnTimeout = window.setTimeout(() => {
+            if (cancelled || !app || isGameOver) return;
+
+            const position = getRandomEnemyPosition(shooterRadius, cheaser);
+
+            if (!position) return;
+
+            shooterHealth = 3;
+
+            shooter.position.set(position.x, position.y);
+
+            app.stage.addChild(shooter);
+          }, 800);
+        }
 
         const islands = [new Sprite(islandTexture), new Sprite(islandTexture)];
-        let islandRadius: number;
+
         for (const island of islands) {
           island.anchor.set(0.5);
-          islandRadius = Math.sqrt(Math.pow((island.width / 2), 2) + Math.pow((island.height / 2), 2));
         }
-        app.stage.addChild(background, ...islands, ship);
+
+        const islandRadii = islands.map((island) =>
+          Math.sqrt(
+            Math.pow((island.width * island.scale.x) / 2, 2) +
+              Math.pow((island.height * island.scale.y) / 2, 2),
+          ),
+        );
+
+        app.stage.addChild(
+          background,
+          ...islands,
+          ship,
+          cheaser,
+          shooter,
+          scoreText,
+          healthText,
+          gameOverText,
+        );
+
+        function createProjectile(app: Application | undefined, ship: Sprite, color = 0xffffff) {
+          const d = ship.height / 2 + 5;
+
+          const directionX = -Math.sin(ship.rotation);
+          const directionY = Math.cos(ship.rotation);
+
+          const projectile: Projectile = {
+            graphic: new Graphics(),
+            directionX,
+            directionY,
+          };
+
+          projectile.graphic.x = ship.x + directionX * d;
+          projectile.graphic.y = ship.y + directionY * d;
+
+          projectile.graphic.circle(0, 0, 5).fill(color);
+          app?.stage.addChild(projectile.graphic);
+
+          return projectile;
+        }
 
         const updatePlayer = (ticker: Ticker) => {
+          if (isGameOver) return;
           const deltaSeconds = ticker.deltaMS / 1000;
+          damageCooldown = Math.max(0, damageCooldown - deltaSeconds);
+          if (cheaserHealth > 0) {
+            const dx = ship.x - cheaser.x;
+            const dy = ship.y - cheaser.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+              cheaser.rotation = Math.atan2(-dx, dy);
+
+              const movementX = (dx / distance) * cheaserSpeed * deltaSeconds;
+              const movementY = (dy / distance) * cheaserSpeed * deltaSeconds;
+
+              const nextX = cheaser.x + movementX;
+              const nextY = cheaser.y + movementY;
+
+              const collidesWithIsland = (x: number, y: number) =>
+                islands.some((island, index) =>
+                  checkCollision(
+                    { x, y },
+                    cheaserRadius * 0.65,
+                    { x: island.x, y: island.y },
+                    islandRadii[index] * 0.65,
+                  ),
+                );
+
+              if (!collidesWithIsland(nextX, cheaser.y)) {
+                cheaser.x = nextX;
+              }
+
+              if (!collidesWithIsland(cheaser.x, nextY)) {
+                cheaser.y = nextY;
+              }
+            }
+
+            if (
+              cheaserHealth > 0 &&
+              damageCooldown === 0 &&
+              checkCollision(
+                { x: ship.x, y: ship.y },
+                shipRadius * 0.5,
+                { x: cheaser.x, y: cheaser.y },
+                cheaserRadius,
+              )
+            ) {
+              playerHealth = Math.max(0, playerHealth - contactDamage);
+
+              app!.stage.removeChild(cheaser);
+              respawnCheaser();
+
+              healthText.text = `Vida: ${playerHealth}`;
+
+              if (playerHealth === 0) {
+                endGame();
+              }
+
+              damageCooldown = damageCooldownDuration;
+            }
+
+            if (shooterHealth > 0) {
+              const dx = ship.x - shooter.x;
+              const dy = ship.y - shooter.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance > 0) {
+                shooter.rotation = Math.atan2(-dx, dy);
+              }
+
+              shooterFireCooldown -= deltaSeconds;
+
+              if (shooterFireCooldown <= 0) {
+                const projectile = createProjectile(app, shooter, 0xffa04a);
+
+                shooterProjectiles.push(projectile);
+                shooterFireCooldown = shooterFireInterval;
+              }
+            }
+          }
           const rotationSpeed = 2;
           const movementSpeed = 100;
           const previousX = ship.x;
@@ -129,62 +357,228 @@ export function GameArena() {
 
           const halfWidth =
             (Math.abs(Math.cos(ship.rotation)) * ship.width +
-              Math.abs(Math.sin(ship.rotation)) * ship.height) / 2;
+              Math.abs(Math.sin(ship.rotation)) * ship.height) /
+            2;
 
           const halfHeight =
             (Math.abs(Math.sin(ship.rotation)) * ship.width +
-              Math.abs(Math.cos(ship.rotation)) * ship.height) / 2;
-
+              Math.abs(Math.cos(ship.rotation)) * ship.height) /
+            2;
 
           if (keysPressed.has('ArrowRight') || keysPressed.has('KeyD')) {
             ship.rotation += rotationSpeed * deltaSeconds;
-          };
+          }
 
           if (keysPressed.has('ArrowLeft') || keysPressed.has('KeyA')) {
             ship.rotation -= rotationSpeed * deltaSeconds;
-          };
+          }
 
           if (keysPressed.has('ArrowUp') || keysPressed.has('KeyW')) {
             const directionX = -Math.sin(ship.rotation);
             const directionY = Math.cos(ship.rotation);
 
-
-
             ship.x += directionX * movementSpeed * deltaSeconds;
             ship.y += directionY * movementSpeed * deltaSeconds;
 
-            for (const island of islands) {
-              if (checkCollision(
-                { x: ship.x, y: ship.y },
-                shipRadius * 0.65,
-                { x: island.x, y: island.y },
-                islandRadius * 0.65
-              )) {
+            for (let i = 0; i < islands.length; i += 1) {
+              const island = islands[i];
+
+              if (
+                checkCollision(
+                  { x: ship.x, y: ship.y },
+                  shipRadius * 0.65,
+                  { x: island.x, y: island.y },
+                  islandRadii[i] * 0.65,
+                )
+              ) {
                 ship.x = previousX;
                 ship.y = previousY;
               }
             }
-          };
+          }
 
-          ship.x = Math.max(
-            halfWidth,
-            Math.min(app!.screen.width - halfWidth, ship.x),
-          );
+          const spaceIsPressed = keysPressed.has('Space');
 
-          ship.y = Math.max(
-            halfHeight,
-            Math.min(app!.screen.height - halfHeight, ship.y),
-          );
+          if (spaceIsPressed && !spaceWasPressed) {
+            const projectile = createProjectile(app, ship);
+            projectiles.push(projectile);
+          }
+
+          spaceWasPressed = spaceIsPressed;
+
+          for (let i = projectiles.length - 1; i >= 0; i -= 1) {
+            projectiles[i].graphic.x += projectiles[i].directionX * projectileSpeed * deltaSeconds;
+            projectiles[i].graphic.y += projectiles[i].directionY * projectileSpeed * deltaSeconds;
+
+            if (
+              cheaserHealth > 0 &&
+              checkCollision(
+                { x: projectiles[i].graphic.x, y: projectiles[i].graphic.y },
+                5,
+                { x: cheaser.x, y: cheaser.y },
+                cheaserRadius,
+              )
+            ) {
+              cheaserHealth -= 1;
+
+              app!.stage.removeChild(projectiles[i].graphic);
+              projectiles.splice(i, 1);
+
+              if (cheaserHealth === 0) {
+                app!.stage.removeChild(cheaser);
+                score += 1;
+                scoreText.text = `Pontuação: ${score}`;
+
+                respawnCheaser();
+              }
+
+              continue;
+            }
+
+            if (
+              shooterHealth > 0 &&
+              checkCollision(
+                {
+                  x: projectiles[i].graphic.x,
+                  y: projectiles[i].graphic.y,
+                },
+                5,
+                { x: shooter.x, y: shooter.y },
+                shooterRadius,
+              )
+            ) {
+              shooterHealth -= 1;
+
+              app!.stage.removeChild(projectiles[i].graphic);
+              projectiles.splice(i, 1);
+
+              if (shooterHealth === 0) {
+                app!.stage.removeChild(shooter);
+                score += 1;
+                scoreText.text = `Pontuação: ${score}`;
+
+                respawnShooter();
+              }
+
+              continue;
+            }
+
+            if (
+              projectiles[i].graphic.x < 0 ||
+              projectiles[i].graphic.x > app!.screen.width ||
+              projectiles[i].graphic.y < 0 ||
+              projectiles[i].graphic.y > app!.screen.height
+            ) {
+              app!.stage.removeChild(projectiles[i].graphic);
+              projectiles.splice(i, 1);
+            }
+          }
+
+          for (let i = shooterProjectiles.length - 1; i >= 0; i -= 1) {
+            const projectile = shooterProjectiles[i];
+
+            projectile.graphic.x += projectile.directionX * shooterProjectileSpeed * deltaSeconds;
+
+            projectile.graphic.y += projectile.directionY * shooterProjectileSpeed * deltaSeconds;
+
+            const hitPlayer = checkCollision(
+              {
+                x: projectile.graphic.x,
+                y: projectile.graphic.y,
+              },
+              5,
+              { x: ship.x, y: ship.y },
+              shipRadius,
+            );
+
+            const outOfBounds =
+              projectile.graphic.x < 0 ||
+              projectile.graphic.x > app!.screen.width ||
+              projectile.graphic.y < 0 ||
+              projectile.graphic.y > app!.screen.height;
+
+            if (hitPlayer && damageCooldown === 0) {
+              playerHealth = Math.max(0, playerHealth - 1);
+
+              healthText.text = `Vida: ${playerHealth}`;
+
+              if (playerHealth === 0) {
+                endGame();
+              }
+
+              damageCooldown = damageCooldownDuration;
+            }
+
+            if (hitPlayer || outOfBounds) {
+              app!.stage.removeChild(projectile.graphic);
+              shooterProjectiles.splice(i, 1);
+            }
+          }
+
+          ship.x = Math.max(halfWidth, Math.min(app!.screen.width - halfWidth, ship.x));
+
+          ship.y = Math.max(halfHeight, Math.min(app!.screen.height - halfHeight, ship.y));
         };
 
-        function checkCollision(positionA: Position, radiusA: number, positionB: Position, radiusB: number): boolean {
-          const objectsDistance = Math.sqrt(Math.pow((positionB.x - positionA.x), 2) + Math.pow((positionB.y - positionA.y), 2));
+        function getRandomEnemyPosition(enemyRadius: number, otherEnemy: Sprite): Position | null {
+          const margin = enemyRadius;
+          const maxAttempts = 100;
 
-          if ((radiusA + radiusB) >= objectsDistance) {
+          for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            const position = {
+              x: margin + Math.random() * (app!.screen.width - margin * 2),
+              y: margin + Math.random() * (app!.screen.height - margin * 2),
+            };
+
+            const overlapsShip = checkCollision(
+              position,
+              enemyRadius,
+              { x: ship.x, y: ship.y },
+              shipRadius,
+            );
+
+            const overlapsOtherEnemy =
+              otherEnemy.visible &&
+              checkCollision(
+                position,
+                enemyRadius,
+                { x: otherEnemy.x, y: otherEnemy.y },
+                otherEnemy === cheaser ? cheaserRadius : shooterRadius,
+              );
+
+            const overlapsIsland = islands.some((island, index) =>
+              checkCollision(
+                position,
+                enemyRadius,
+                { x: island.x, y: island.y },
+                islandRadii[index],
+              ),
+            );
+
+            if (!overlapsShip && !overlapsOtherEnemy && !overlapsIsland) {
+              return position;
+            }
+          }
+
+          // Não encontrou uma posição livre após todas as tentativas.
+          return null;
+        }
+
+        function checkCollision(
+          positionA: Position,
+          radiusA: number,
+          positionB: Position,
+          radiusB: number,
+        ): boolean {
+          const objectsDistance = Math.sqrt(
+            Math.pow(positionB.x - positionA.x, 2) + Math.pow(positionB.y - positionA.y, 2),
+          );
+
+          if (radiusA + radiusB >= objectsDistance) {
             return true;
-          };
+          }
           return false;
-        };
+        }
 
         app.ticker.add(updatePlayer);
         app.start();
@@ -195,6 +589,12 @@ export function GameArena() {
           const height = Math.max(host.clientHeight, 1);
           app.renderer.resize(width, height);
           drawPreview(app, background, ship, islands, width, height);
+          islands.forEach((island, index) => {
+            islandRadii[index] = Math.sqrt(
+              Math.pow((island.width * island.scale.x) / 2, 2) +
+                Math.pow((island.height * island.scale.y) / 2, 2),
+            );
+          });
         };
 
         resizeObserver = new ResizeObserver(resize);
@@ -217,6 +617,12 @@ export function GameArena() {
 
     return () => {
       cancelled = true;
+      if (respawnTimeout !== undefined) {
+        window.clearTimeout(respawnTimeout);
+      }
+      if (shooterRespawnTimeout !== undefined) {
+        window.clearTimeout(shooterRespawnTimeout);
+      }
       resizeObserver?.disconnect();
       if (app) {
         if (host.contains(app.canvas)) host.removeChild(app.canvas);
