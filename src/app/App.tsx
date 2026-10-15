@@ -65,9 +65,6 @@ function loadOptions(): GameOptions {
 
 export function App() {
   const [screen, setScreen] = useState<Screen>('menu');
-  const pageShellRef = useRef<HTMLElement>(null);
-  const [isAppFullscreen, setIsAppFullscreen] = useState(false);
-  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [options, setOptions] = useState<GameOptions>(loadOptions);
   const [matchSubmissionState, setMatchSubmissionState] = useState<
     'idle' | 'pending' | 'confirmed'
@@ -109,32 +106,6 @@ export function App() {
     getPendingMatches().forEach((match) => submitMatchResult(match));
   }, [submitMatchResult]);
 
-  const toggleAppFullscreen = useCallback(async () => {
-    const pageShell = pageShellRef.current;
-    if (!pageShell) return;
-
-    setFullscreenError(null);
-    try {
-      if (document.fullscreenElement === pageShell) {
-        await document.exitFullscreen();
-      } else {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        await pageShell.requestFullscreen();
-      }
-    } catch {
-      setFullscreenError('Não foi possível alterar o modo de tela cheia neste navegador.');
-    }
-  }, []);
-
-  useEffect(() => {
-    const syncFullscreenState = () => {
-      setIsAppFullscreen(document.fullscreenElement === pageShellRef.current);
-    };
-
-    document.addEventListener('fullscreenchange', syncFullscreenState);
-    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
-  }, []);
-
   const updateOption = (next: GameOptions) => {
     setOptions(next);
     try {
@@ -145,31 +116,15 @@ export function App() {
   };
 
   return (
-    <main ref={pageShellRef} className="page-shell">
+    <main className="page-shell">
       <header className="site-header">
         <a className="brand" href="#home" aria-label="Pirate Battle home">
           <img src={jungleLogo} alt="Jungle Gaming" />
         </a>
         <div className="site-header-actions">
           <span className="build-label">EDIÇÃO ARCADE</span>
-          {screen !== 'playing' && (
-            <button
-              type="button"
-              className="fullscreen-button"
-              aria-label={isAppFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-              aria-pressed={isAppFullscreen}
-              onClick={() => void toggleAppFullscreen()}
-            >
-              {isAppFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-            </button>
-          )}
         </div>
       </header>
-      {fullscreenError && (
-        <p className="fullscreen-error" role="alert">
-          {fullscreenError}
-        </p>
-      )}
 
       <section className="hero" id="home" aria-labelledby="page-title">
         <div className="hero-copy">

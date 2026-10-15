@@ -44,20 +44,6 @@ button:focus-visible {
   padding: 25px 0 20px;
 }
 
-.page-shell:fullscreen {
-  position: fixed;
-  z-index: 1000;
-  inset: 0;
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  min-height: 0;
-  flex-direction: column;
-  overflow: auto;
-  padding: 14px clamp(16px, 3vw, 48px);
-  background: #071c2a;
-}
-
 .site-header,
 .site-footer,
 .arena-heading-row,
@@ -160,28 +146,6 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
-}
-
-.page-shell:fullscreen .workspace-grid {
-  min-height: 0;
-  flex: 1 1 auto;
-}
-
-.page-shell:fullscreen .arena-card {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.page-shell:fullscreen .arena-frame {
-  height: auto;
-  min-height: 0;
-  flex: 1 1 auto;
-}
-
-.page-shell:fullscreen .main-menu-card {
-  min-height: 0;
-  flex: 1 1 auto;
 }
 
 .arena-card,

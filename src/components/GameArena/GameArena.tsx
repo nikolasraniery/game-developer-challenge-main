@@ -102,13 +102,7 @@ export function GameArena({
     const syncFullscreenState = () => {
       const fullscreenElement = document.fullscreenElement;
       const arena = fullscreenRef.current;
-      setIsFullscreen(
-        Boolean(
-          arena &&
-          fullscreenElement &&
-          (fullscreenElement === arena || fullscreenElement.contains(arena)),
-        ),
-      );
+      setIsFullscreen(Boolean(arena && fullscreenElement === arena));
       setFullscreenError(null);
     };
 
@@ -127,7 +121,7 @@ export function GameArena({
     setFullscreenError(null);
     try {
       const fullscreenElement = document.fullscreenElement;
-      if (fullscreenElement === arena || fullscreenElement?.contains(arena)) {
+      if (fullscreenElement === arena) {
         await document.exitFullscreen();
       } else {
         await arena.requestFullscreen();
@@ -135,7 +129,7 @@ export function GameArena({
     } catch {
       if (fullscreenMountedRef.current) {
         setFullscreenError(
-          document.fullscreenElement === arena || document.fullscreenElement?.contains(arena)
+          document.fullscreenElement === arena
             ? 'Não foi possível sair da tela cheia.'
             : 'Não foi possível entrar em tela cheia neste navegador.',
         );
