@@ -1,52 +1,38 @@
 # Architecture
 
-## Current scope
-
-This repository is at the initial setup stage. It contains a responsive React screen, a static PixiJS arena preview using supplied artwork, and one browser-mocked API request. There is no playable match, game simulation, combat, collision system, ranking, or match history yet.
-
-The original challenge specification remains in the root `README.md`. `APP_README.md` documents how to run this application without replacing that source document.
-
 ## React and PixiJS boundary
 
-React owns the page structure, text, layout, accessible status messages, and the TanStack Query provider. `GameArena` owns the PixiJS `Application` and canvas. React does not render per-frame game state.
+React owns the main menu, controls and options screens, accessible status, HUD, pause/result panels, and responsive layout. The menu stores duration and enemy spawn interval in `localStorage`. It mounts `GameArena` only after the player chooses Play, passing an immutable settings snapshot for that session. Returning to the menu unmounts the arena.
 
-The current scene is deliberately static: a water-colored arena, two supplied rock sprites, and one supplied ship sprite. It demonstrates asset loading, canvas mounting, and resizing only. The water lines and island art do not implement collision geometry.
+`GameArena` owns PixiJS initialization, asset loading, canvas mounting, `ResizeObserver`, fullscreen state, and teardown. It passes infrequent HUD, pause, and result updates to React. The runtime reports one typed completed-match payload from its guarded game-over path. Combat feedback reuses the supplied explosion texture and tinted ship sprites; effect sprites are updated in the ticker and removed after their short lifetime or on disposal. PixiJS is integrated directly; the asynchronous initialization is cancelled on unmount, the observer and runtime listeners are removed, and the application is destroyed once. React Strict Mode remains enabled.
 
-PixiJS is used directly rather than through `@pixi/react`. This keeps the integration small and makes the renderer's asynchronous startup and teardown explicit. `GameArena` loads its two textures, initializes the application with `autoStart: false`, mounts the canvas, and draws when the scene is initialized or resized. A `ResizeObserver` follows the host element. The effect cancels asynchronous startup when unmounted, disconnects the observer, removes the canvas, and destroys the application and scene children. React Strict Mode is enabled so setup and cleanup are exercised during development.
+## Game simulation
 
-No simulation clock, entity model, input handling, or game systems exist yet. Those responsibilities should live under `src/game/` when gameplay work begins; the simulation should own continuous match state, while React should receive only infrequent UI snapshots such as pause, result, and HUD changes.
+`src/game/gameRuntime.ts` owns continuous match state and advances it from the Pixi ticker delta. `gameMath.ts` contains pure movement, collision, bounds, and timing helpers. `keyboardControls.ts` owns keyboard and touch input, including automatic pause on blur or hidden document. `arenaScene.ts`, `enemySpawner.ts`, `projectiles.ts`, and `healthIndicator.ts` own scene placement, safe enemy creation, projectile construction, and Pixi health bars.
+
+Pausing stops the ticker and clears held input. Respawn countdowns use active simulation time, so they freeze with the match. Game over stops the ticker and clears pending respawns. Restart creates a new runtime through a new arena session; returning to the menu unmounts the current one.
+
+`src/config/gameConfig.ts` contains gameplay defaults. Match duration (60–180 seconds) and enemy spawn interval (1–12 seconds) are selected in the menu and passed into each runtime. Changing settings affects the next match only.
 
 ## Data layer
 
-`src/services/api/httpClient.ts` exports the shared Axios instance with a same-origin `/api` base path and request timeout. `src/services/matches/demoStatus.ts` defines the first request function, with the response contract in `src/types/api.ts`.
+`src/services/api/httpClient.ts` exports the shared Axios client. `MatchCenter` queries ranking and player history with TanStack Query. The mock API handlers in `src/mocks/handlers/matchHandlers.ts` implement paged GET endpoints and an idempotent POST backed by a shared in-memory match collection; ranking and history read the same accepted results. Fixture ranking entries use a fixed configuration and deterministic score/date/player-id ordering.
 
-`ApiStatus` uses TanStack Query to request `GET /api/demo-status`. The shared `QueryClient` applies a short stale time, one retry, and no focus refetch for this initial demonstration.
+Before posting, `App` saves a completed record into the local outbox in `src/services/matches/matchRepository.ts`. On acceptance the record is marked confirmed in local storage and both query families are invalidated. Pending records survive refresh and are resubmitted with the same match id as the idempotency key. The result screen and main menu allow manual retry, and pending submission does not block a new match. The mock collection is in memory in the service worker, while the client's outbox and confirmed history are local storage; there is no real backend.
 
-The MSW handler and fixture live in `src/mocks/handlers/` and `src/mocks/fixtures/`. `src/main.tsx` awaits `worker.start()` before rendering React, preventing the initial query from racing service-worker registration. Mocking is enabled by default in development and production so a static deployment can run without a backend. Set `VITE_ENABLE_MOCK_API=false` only when intentionally testing the screen without a mock response. There is no real API server or remote service.
+Selectable MSW scenarios cover success, empty responses, fixed and variable deterministic delays, deliberately out-of-order latency, connection failure, HTTP 400/503 query failures, HTTP 503 submission failure, and a submission response delayed past the Axios timeout. Reset clears local match data and the worker-side collection.
 
-`public/mockServiceWorker.js` is generated by MSW's CLI and must be included in the deployment. Run `npm run msw:init` after upgrading MSW to refresh the worker file.
+## Assets and project structure
 
-## Assets
+Original assets remain under `assets/` and are imported by URL so Vite includes only referenced files in the build. The menu, HUD, controls, ships, water, islands, cannon projectiles, and explosion effects reuse supplied sprites.
 
-The supplied files remain under the original root `assets/` directory. The preview imports the Jungle Gaming logo, the Pirate Battle title art, `ship_1.png`, and `tile_50.png` through Vite URL imports. Vite serves those imported assets in development and emits them into the production build. Other supplied files remain available in the repository but are not copied into `dist` until referenced by the application.
+- `src/app/`: application screens and shared providers.
+- `src/components/`: React arena integration and API status panel.
+- `src/config/`: typed gameplay defaults.
+- `src/game/`: simulation, input, entities, scene, projectiles, and indicators.
+- `src/services/`, `src/types/`, and `src/mocks/`: HTTP client, contracts, and demo MSW integration.
+- `tests/unit/`, `tests/components/`, and `e2e/`: pure logic, mocked Pixi/React components, and browser flows.
 
-## Project organization
+## Known gaps
 
-- `src/app/`: application entry UI and providers.
-- `src/components/`: the arena preview and API status panel.
-- `src/services/` and `src/types/`: the HTTP client, request function, and shared demo contract.
-- `src/mocks/`: browser worker setup, handlers, and fixtures.
-- `src/styles/`: responsive global styling.
-- `tests/e2e/`: the initial Chromium smoke test.
-
-Directories for gameplay, options, ranking, match history, and visual regression tests are intentionally deferred until they have implemented behavior to contain.
-
-## Decisions and open work
-
-- Vite builds the React and TypeScript application; TypeScript uses strict checks.
-- PixiJS is integrated directly to keep lifecycle ownership clear during the short setup stage.
-- The existing challenge README is preserved; application setup instructions are kept in `APP_README.md`.
-- The initial Playwright configuration targets Chromium. The current E2E check verifies only that the PixiJS canvas and MSW-backed status render.
-- The game loop model, fixed-step timing, input architecture, entity ownership, collision representation, texture loading progress, and game asset selection remain open for the gameplay phase.
-- Ranking/history contracts beyond the demo status, pagination, persistence, retry/recovery semantics, and network failure scenarios remain open for the data phase.
-- Mobile gameplay orientation, touch controls, and visual-regression baselines remain open; this foundation screen itself is responsive.
+Ranking, history, result records, pending recovery, and selectable API scenarios are demo-only. Other captains are fixtures, and confirmed mock API data is not durable across service-worker restarts; local completed records remain durable in the browser. The deterministic latency scenarios are intended for repeatable UI checks, not to reproduce every browser/network race. The visual feedback currently uses sprite tint and a short explosion sprite animation; there are no sound effects. Windows Chromium visual baselines now cover the menu, paused arena, and result panel. A three-minute gameplay performance profile, memory-cycle evidence, and public deployment evidence remain outstanding. E2E scenarios require an environment where Playwright can access its local preview server.
