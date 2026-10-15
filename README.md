@@ -135,6 +135,6 @@ Para reproduzir um build estático de produção, execute `npm ci` e depois `npm
 - Ao recarregar a página, a aplicação volta ao menu; o painel de resultado não é restaurado, embora o registro concluído permaneça no histórico local quando o armazenamento do navegador está disponível.
 - O carregamento dos assets mostra um estado visível, mas não uma porcentagem de progresso. O jogo não tem efeitos sonoros.
 - Há controles de toque abaixo da arena e o layout responde a redimensionamentos; a cobertura Playwright é para Chromium em desktop e não representa uma matriz completa de dispositivos móveis e navegadores.
-- Continuam pendentes o perfil real de três minutos, as evidências dos cinco ciclos de iniciar/jogar/sair e a verificação independente do deploy público. A URL informada pelo usuário não é tratada como evidência verificada.
+- Continuam pendentes o perfil real de três minutos, as evidências dos cinco ciclos de iniciar/jogar/sair e a verificação independente do deploy público.
 - A execução paralela padrão do Playwright apresentou falhas de timer e snapshot sob carga concorrente, depois de uma execução anterior com 18/18 aprovados. A repetição em um único worker passou nos 19 testes. Nenhuma asserção foi enfraquecida.
 - O ambiente atual, com Node `v24.14.1`, emitiu avisos `EBADENGINE` para dependências `jsdom` travadas que pedem Node `24.15.0` ou superior na linha 24.x. Typecheck, lint, build e os testes registrados ainda passaram nesse ambiente.
