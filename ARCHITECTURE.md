@@ -12,7 +12,11 @@ React owns the main menu, controls and options screens, accessible status, HUD, 
 
 Pausing stops the ticker and clears held input. Respawn countdowns use active simulation time, so they freeze with the match. Game over stops the ticker and clears pending respawns. Restart creates a new runtime through a new arena session; returning to the menu unmounts the current one.
 
-`src/config/gameConfig.ts` contains gameplay defaults. Match duration (60–180 seconds) and enemy spawn interval (1–12 seconds) are selected in the menu and passed into each runtime. Changing settings affects the next match only.
+## Performance diagnostics
+
+`src/game/performanceProfiler.ts` is an opt-in runtime observer. Only a Vite development session opened with `?profile=1` creates it. It records `performance.now()` intervals between PixiJS ticker callback starts, per-second callback/entity/memory windows, and a fixed-capacity interval buffer. The game runtime provides active enemy, projectile, and effect counts from its existing ownership lists; managed entities count the player plus those active dynamic objects and exclude static scenery and health indicators. The observer does not change simulation rules or publish per-frame React state. Its browser-console API and export formats are documented in `DELIVERY_READINESS.md`.
+
+`src/config/gameConfig.ts` contains gameplay defaults. Match duration (60–180 seconds) and enemy spawn interval (1–12 seconds) are selected in the menu and passed into each runtime. Changing settings affects the next match only. The original technical challenge specification is preserved in `CHALLENGE_SPEC.md`.
 
 ## Data layer
 
@@ -35,4 +39,4 @@ Original assets remain under `assets/` and are imported by URL so Vite includes 
 
 ## Known gaps
 
-Ranking, history, result records, pending recovery, and selectable API scenarios are demo-only. Other captains are fixtures, and confirmed mock API data is not durable across service-worker restarts; local completed records remain durable in the browser. The deterministic latency scenarios are intended for repeatable UI checks, not to reproduce every browser/network race. The visual feedback currently uses sprite tint and a short explosion sprite animation; there are no sound effects. Windows Chromium visual baselines now cover the menu, paused arena, and result panel. A three-minute gameplay performance profile, memory-cycle evidence, and public deployment evidence remain outstanding. E2E scenarios require an environment where Playwright can access its local preview server.
+Ranking, history, result records, pending recovery, and selectable API scenarios are demo-only. Other captains are fixtures, and confirmed mock API data is not durable across service-worker restarts; local completed records remain durable in the browser. The deterministic latency scenarios are intended for repeatable UI checks, not to reproduce every browser/network race. The visual feedback currently uses sprite tint and a short explosion sprite animation; there are no sound effects. Windows Chromium visual baselines now cover the menu, paused arena, and result panel. A real three-minute gameplay profile and memory-cycle evidence remain outstanding. The user reports a public Vercel deployment, but its current availability was not independently verified in this update. E2E scenarios require an environment where Playwright can access its local preview server.

@@ -5,6 +5,13 @@ import { createProjectile, fireSideVolley } from './projectiles';
 import { createKeyboardControls } from './keyboardControls';
 import { createHealthIndicator } from './healthIndicator';
 import {
+  createEntityCounts,
+  createPerformanceProfiler,
+  type EntityCounts,
+  type ProfileEnvironment,
+  type PerformanceProfiler,
+} from './performanceProfiler';
+import {
   checkCollision,
   clampToArena,
   forwardMovement,
@@ -26,6 +33,8 @@ export type GameRuntimeOptions = {
   onMatchComplete?: (match: CompletedMatch) => void;
   durationSeconds?: number;
   spawnIntervalSeconds?: number;
+  enablePerformanceProfiling?: boolean;
+  profilingEnvironment?: ProfileEnvironment;
 };
 
 export function createGameRuntime(
@@ -44,6 +53,8 @@ export function createGameRuntime(
     onMatchComplete,
     durationSeconds = GAME_CONFIG.match.durationSeconds,
     spawnIntervalSeconds = GAME_CONFIG.enemies.spawnIntervalSeconds,
+    enablePerformanceProfiling = false,
+    profilingEnvironment,
   }: GameRuntimeOptions,
 ) {
   let cheaserRespawnRemaining: number | undefined;
@@ -86,6 +97,34 @@ export function createGameRuntime(
   let playerDamageFlash = 0;
   const explosionEffects: { sprite: Sprite; elapsed: number; duration: number }[] = [];
   const shipRadius = Math.sqrt(Math.pow(ship.width / 2, 2) + Math.pow(ship.height / 2, 2));
+
+  const getEntityCounts = (): EntityCounts => {
+    let activeChasers = cheaserHealth > 0 ? 1 : 0;
+    let activeShooters = shooterHealth > 0 ? 1 : 0;
+    for (const enemy of spawnedEnemies) {
+      if (enemy.kind === 'cheaser') activeChasers += 1;
+      else activeShooters += 1;
+    }
+    const totalProjectiles =
+      projectiles.length + shooterProjectiles.length + spawnedEnemyProjectiles.length;
+
+    return createEntityCounts(
+      activeChasers,
+      activeShooters,
+      totalProjectiles,
+      explosionEffects.length,
+    );
+  };
+  const profiler: PerformanceProfiler | undefined =
+    enablePerformanceProfiling && profilingEnvironment
+      ? createPerformanceProfiler({
+          enabled: true,
+          environment: profilingEnvironment,
+          configuration: { durationSeconds, spawnIntervalSeconds },
+          getEntityCounts,
+        })
+      : undefined;
+  profiler?.start(durationSeconds);
 
   const cheaser = new Sprite(shipTextures.chaser);
   cheaser.anchor.set(0.5);
@@ -164,6 +203,7 @@ export function createGameRuntime(
     if (isGameOver) return;
 
     isGameOver = true;
+    profiler?.finish();
     keyboardControls.releaseAll();
     app?.ticker.stop();
     cheaserRespawnRemaining = undefined;
@@ -354,6 +394,7 @@ export function createGameRuntime(
   };
 
   const updatePlayer = (ticker: Ticker) => {
+    profiler?.recordFrame();
     if (isGameOver) return;
 
     const deltaSeconds = ticker.deltaMS / 1000;
@@ -968,6 +1009,7 @@ export function createGameRuntime(
   };
 
   const dispose = () => {
+    profiler?.finish();
     cheaserRespawnRemaining = undefined;
     shooterRespawnRemaining = undefined;
     app.ticker.stop();
@@ -986,5 +1028,6 @@ export function createGameRuntime(
     resume: resumeGame,
     togglePause,
     setVirtualKey: keyboardControls.setVirtualKey,
+    profiler,
   };
 }

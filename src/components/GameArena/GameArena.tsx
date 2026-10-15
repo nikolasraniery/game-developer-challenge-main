@@ -9,6 +9,11 @@ import { Application, Assets, Texture } from 'pixi.js';
 import { GAME_CONFIG } from '../../config/gameConfig';
 import { createGameRuntime } from '../../game/gameRuntime';
 import { formatTime } from '../../game/gameMath';
+import {
+  createPerformanceProfileWindowApi,
+  type PerformanceProfileWindowApi,
+  type ProfileEnvironment,
+} from '../../game/performanceProfiler';
 import type { CompletedMatch, GameHudSnapshot } from '../../game/types';
 import playerShipAsset from '../../../assets/png/default/ships/ship_1.png?url';
 import chaserShipAsset from '../../../assets/png/default/ships/ship_2.png?url';
@@ -146,6 +151,14 @@ export function GameArena({
     let app: Application | undefined;
     let appDestroyed = false;
     let runtime: ReturnType<typeof createGameRuntime> | undefined;
+    let profileApi: PerformanceProfileWindowApi | undefined;
+
+    const removeProfileApi = () => {
+      if (profileApi && window.__PIRATE_BATTLE_PROFILE__ === profileApi) {
+        delete window.__PIRATE_BATTLE_PROFILE__;
+      }
+      profileApi = undefined;
+    };
 
     const destroyApp = () => {
       if (!app || appDestroyed) return;
@@ -194,6 +207,19 @@ export function GameArena({
 
         setGameState('playing');
 
+        const enablePerformanceProfiling =
+          import.meta.env.DEV && new URLSearchParams(window.location.search).get('profile') === '1';
+        const profilingEnvironment: ProfileEnvironment | undefined = enablePerformanceProfiling
+          ? {
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              viewportWidth: host.clientWidth,
+              viewportHeight: host.clientHeight,
+              devicePixelRatio: window.devicePixelRatio || 1,
+              rendererResolution: app.renderer.resolution,
+            }
+          : undefined;
+
         app.canvas.setAttribute('aria-label', 'Pirate Battle game arena');
         app.canvas.className = 'arena-canvas';
         host.appendChild(app.canvas);
@@ -214,9 +240,15 @@ export function GameArena({
             onMatchComplete: handleMatchComplete,
             durationSeconds,
             spawnIntervalSeconds,
+            enablePerformanceProfiling,
+            profilingEnvironment,
           },
         );
         runtimeRef.current = runtime;
+        if (runtime.profiler) {
+          profileApi = createPerformanceProfileWindowApi(runtime.profiler);
+          window.__PIRATE_BATTLE_PROFILE__ = profileApi;
+        }
         resizeObserver = new ResizeObserver(runtime.resize);
         resizeObserver.observe(host);
         runtime.resize();
@@ -228,6 +260,7 @@ export function GameArena({
           setErrorMessage(`The game arena could not be initialized. ${detail}`);
         }
         runtime?.dispose();
+        removeProfileApi();
         runtime = undefined;
         runtimeRef.current = null;
         resizeObserver?.disconnect();
@@ -242,6 +275,7 @@ export function GameArena({
     return () => {
       cancelled = true;
       runtime?.dispose();
+      removeProfileApi();
       runtimeRef.current = null;
       resizeObserver?.disconnect();
       if (app && host.contains(app.canvas)) host.removeChild(app.canvas);

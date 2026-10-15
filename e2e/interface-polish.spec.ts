@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+test('does not expose profiling controls in the production build', async ({ page }) => {
+  await page.goto('/?profile=1');
+  await page.getByRole('button', { name: 'Jogar' }).click();
+  await expect(page.getByText('PixiJS ready')).toBeVisible({ timeout: 15_000 });
+
+  const profileApi = await page.evaluate(() => Reflect.get(window, '__PIRATE_BATTLE_PROFILE__'));
+  expect(profileApi).toBeUndefined();
+});
+
 test('fullscreen targets only the arena and Space does not toggle its button', async ({ page }) => {
   await page.addInitScript(() => {
     let fullscreenElement: Element | null = null;
