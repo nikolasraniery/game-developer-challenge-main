@@ -1,115 +1,115 @@
-# Pirate Battle application
+# Pirate Battle
 
-This guide describes the implemented application. The original technical challenge specification is preserved in [`CHALLENGE_SPEC.md`](./CHALLENGE_SPEC.md).
+Este guia documenta a aplicação implementada. O enunciado original do desafio técnico foi preservado em [`CHALLENGE_SPEC.md`](./CHALLENGE_SPEC.md).
 
-## Overview
+## Visão geral
 
-Pirate Battle is a browser-based, single-player naval shooter built with React, strict TypeScript, and PixiJS. The player steers a ship around islands, fights Chaser and Shooter enemies, and tries to survive until time expires. The application also includes a responsive menu, persistent match options, touch controls, HUD, pause/restart, fullscreen, result handling, and demonstration ranking and match history backed by MSW, Axios, and TanStack Query.
+Pirate Battle é um jogo de combate naval para navegador e um único jogador, desenvolvido com React, TypeScript em modo estrito e PixiJS. O jogador pilota um navio entre ilhas, enfrenta inimigos Chaser e Shooter e tenta sobreviver até o fim do tempo. A aplicação também inclui menu responsivo, opções de partida persistentes, controles por toque, HUD, pausa e reinício, tela cheia, registro de resultados e demonstrações de ranking e histórico com MSW, Axios e TanStack Query.
 
-## Requirements and setup
+## Requisitos e instalação
 
-- Node.js `>=22.12.0`, as declared in `package.json`.
-- npm and the checked-in `package-lock.json`.
-- Chromium for the Playwright E2E suite.
+- Node.js `>=22.12.0`, conforme declarado em `package.json`.
+- npm e o arquivo `package-lock.json` versionado.
+- Chromium para a suíte E2E do Playwright.
 
-Install the locked dependencies and start the development server:
+Instale as dependências travadas no lockfile e inicie o servidor de desenvolvimento:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. The menu appears first; the PixiJS arena and its assets initialize after choosing **Jogar**. A loading state is shown while the arena is prepared. No API server, credentials, or required environment variables are needed.
+Abra o endereço local exibido pelo Vite. O menu aparece primeiro; a arena PixiJS e seus assets são inicializados após escolher **Jogar**. Um estado de carregamento é exibido enquanto a arena é preparada. Não é necessário configurar servidor de API, credenciais ou variáveis de ambiente.
 
-MSW starts in development and production by default. The optional `VITE_ENABLE_MOCK_API=false` setting disables the worker; because no real API is configured, the demo status, ranking, and history requests then fail. Ranking and history are mock API behavior, not a remote backend.
+O MSW é iniciado por padrão nos ambientes de desenvolvimento e produção. A configuração opcional `VITE_ENABLE_MOCK_API=false` desativa o worker; como não há uma API real configurada, as requisições de status da demonstração, ranking e histórico falharão. Ranking e histórico são simulados pela API mock do MSW, não são serviços remotos.
 
-## Gameplay, controls, and options
+## Jogabilidade, controles e opções
 
-Use the **Controles** panel in the menu or the hints below the arena for the in-game commands:
+Consulte o painel **Controles** no menu ou as instruções abaixo da arena:
 
-- **W** or **↑**: move forward.
-- **A** or **←**: turn left; **D** or **→**: turn right.
-- **Space**: fire the forward weapon.
-- **Q** / **E**: fire the left / right side volleys.
-- **P** or **Esc**: pause or resume. The game also pauses when the browser window loses focus or its tab is hidden; resume with **P**, **Esc**, or the on-screen button.
-- On mobile, press and hold the touch buttons below the arena to move, turn, and fire. Use the touch pause/resume button for pause control.
+- **W** ou **↑**: avançar.
+- **A** ou **←**: virar à esquerda; **D** ou **→**: virar à direita.
+- **Space**: disparar o canhão frontal.
+- **Q** / **E**: disparar a salva lateral esquerda / direita.
+- **P** ou **Esc**: pausar ou retomar. O jogo também pausa quando a janela perde o foco ou a aba fica oculta; retome com **P**, **Esc** ou o botão na tela.
+- Em dispositivos móveis, mantenha pressionados os controles de toque abaixo da arena para mover, virar e disparar. Use o botão de toque para pausar ou retomar.
 
-Choose **Jogar** to start a match. **Configurações** stores the options in browser `localStorage`: duration from 60 to 180 seconds in 15-second steps, and enemy spawn interval from 1 to 12 seconds in 1-second steps. Each new match receives a snapshot; edits apply to the next match. The defaults are 60 seconds and 4 seconds. At game over, **Jogar novamente** starts a fresh arena; **Voltar ao menu** leaves the arena. The arena also has a fullscreen button.
+Escolha **Jogar** para iniciar uma partida. Em **Configurações**, as opções são salvas no `localStorage` do navegador: duração de 60 a 180 segundos, em incrementos de 15 segundos, e intervalo entre surgimentos de inimigos de 1 a 12 segundos, em incrementos de 1 segundo. Cada partida recebe uma cópia das configurações atuais; alterações valem para a próxima partida. Os valores padrão são 60 segundos e 4 segundos. Ao fim da partida, **Jogar novamente** inicia uma nova arena e **Voltar ao menu** sai dela. A arena também oferece um botão de tela cheia.
 
-During combat the PixiJS canvas displays the player, Chaser and Shooter ships, islands, projectiles, health indicators, and explosion effects. The semantic HUD reports player health, score, and remaining time. Enemy defeats by player fire award one point; the match ends on timeout or when player health reaches zero. Pause suspends active simulation time. A completed match shows its score, duration, end reason, and recording state.
+Durante o combate, o canvas PixiJS exibe o navio do jogador, os navios Chaser e Shooter, ilhas, projéteis, indicadores de vida e efeitos de explosão. O HUD semântico apresenta vida do jogador, pontuação e tempo restante. Cada inimigo derrotado pelos disparos do jogador vale um ponto. A partida termina quando o tempo acaba ou a vida do jogador chega a zero. A pausa suspende o tempo ativo da simulação. A tela de resultado mostra pontuação, duração, motivo do encerramento e estado do registro.
 
-## Build and local production preview
+## Build e preview de produção local
 
 ```sh
 npm run build
 npm run preview
 ```
 
-The build runs TypeScript project checks and writes the optimized static site to `dist/`. Preview serves that build locally; open the URL printed by Vite Preview and check that the menu, arena, and mock API views load. Rebuild after changing source before previewing.
+O build executa as verificações de TypeScript e gera o site estático otimizado em `dist/`. O preview serve esse build localmente; abra o endereço exibido pelo Vite Preview e confira se o menu, a arena e as telas da API mock carregam. Gere um novo build após alterar o código antes de iniciar o preview.
 
-## Commands
+## Comandos
 
-| Command                                              | Purpose                                                                                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run dev`                                        | Start the Vite development server.                                                                                             |
-| `npm run build`                                      | TypeScript checks and optimized production build.                                                                              |
-| `npm run preview`                                    | Serve the latest `dist/` build locally.                                                                                        |
-| `npm run typecheck`                                  | Run `tsc -b`.                                                                                                                  |
-| `npm run lint`                                       | Run ESLint.                                                                                                                    |
-| `npm run test:unit`                                  | Run deterministic Vitest logic, input, repository, and profiler tests.                                                         |
-| `npm run test:components`                            | Run React component tests with PixiJS mocked; no WebGL is required.                                                            |
-| `npm run test:e2e`                                   | Build the app and run the Chromium Playwright suite against Vite Preview.                                                      |
-| `npm run test:e2e -- --workers=1`                    | Run that suite serially; useful for reducing timing variation on constrained machines.                                         |
-| `npm run format` / `npm run format:check`            | Format or check the configured source, tests, and root config globs. Markdown files are not included by these package scripts. |
-| `npm run msw:init`                                   | Generate or refresh `public/mockServiceWorker.js` from the installed MSW package.                                              |
-| `npm run profile:report -- run.json [baseline.json]` | Summarize a genuine JSON profile export and, optionally, compare it with a baseline.                                           |
+| Comando                                              | Finalidade                                                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                                        | Inicia o servidor de desenvolvimento do Vite.                                                                                                |
+| `npm run build`                                      | Executa as verificações de TypeScript e gera o build de produção otimizado.                                                                  |
+| `npm run preview`                                    | Serve localmente o build mais recente em `dist/`.                                                                                            |
+| `npm run typecheck`                                  | Executa `tsc -b`.                                                                                                                            |
+| `npm run lint`                                       | Executa o ESLint.                                                                                                                            |
+| `npm run test:unit`                                  | Executa testes Vitest determinísticos de lógica, controles, repositório e profiler.                                                          |
+| `npm run test:components`                            | Executa testes dos componentes React com PixiJS simulado; não requer WebGL.                                                                  |
+| `npm run test:e2e`                                   | Gera o build e executa a suíte Playwright em Chromium contra o Vite Preview.                                                                 |
+| `npm run test:e2e -- --workers=1`                    | Executa a suíte em série; útil para reduzir variações de tempo em máquinas limitadas.                                                        |
+| `npm run format` / `npm run format:check`            | Formata ou verifica os arquivos de código, testes e configurações cobertos pelos globs existentes. Os scripts não incluem arquivos Markdown. |
+| `npm run msw:init`                                   | Gera ou atualiza `public/mockServiceWorker.js` com o MSW instalado.                                                                          |
+| `npm run profile:report -- run.json [baseline.json]` | Resume um perfil JSON real e, opcionalmente, compara-o com uma referência.                                                                   |
 
-Install Playwright's browser once if it is missing:
+Se o navegador do Playwright ainda não estiver instalado, instale-o uma vez:
 
 ```sh
 npx playwright install chromium
 ```
 
-E2E coverage includes menu/options navigation and persistence, arena setup and keyboard controls, pause timing, resize, API error states, ranking pagination, history empty/error states, a completed-match/restart flow, and visual baselines for the menu, a paused arena, and the result panel. Current browser E2E coverage does not verify all combat rules by driving real attacks. The test command writes an HTML report under `playwright-report/` and failure artifacts such as screenshots and traces under `test-results/`; these generated directories are ignored by Git.
+A cobertura E2E inclui navegação pelo menu e pelas opções, persistência, inicialização da arena e controles de teclado, pausa e temporização, redimensionamento, estados de erro da API, paginação do ranking, estados vazio e de erro do histórico, conclusão e reinício de partida, além de baselines visuais do menu, da arena pausada e do painel de resultado. Os testes E2E atuais não verificam todas as regras de combate acionando ataques reais. O comando gera um relatório HTML em `playwright-report/` e artefatos de falhas, como screenshots e traces, em `test-results/`; essas pastas geradas são ignoradas pelo Git.
 
-## Architecture
+## Arquitetura
 
-- `src/app/` contains the React screens, menu state, options storage, and TanStack Query provider.
-- `src/components/GameArena/` owns PixiJS setup, asset loading, canvas sizing, fullscreen, semantic HUD, touch controls, and teardown.
-- `src/game/` contains the ticker-driven simulation, movement/collision math, keyboard and virtual input, enemy spawning, projectiles, health indicators, and the opt-in performance profiler.
-- `src/services/` contains the shared Axios client and match repository/API; `src/mocks/` contains MSW handlers and fixtures.
-- `tests/` covers pure logic and React components; `e2e/` contains Playwright flows and checked-in Windows Chromium snapshots.
+- `src/app/` contém as telas React, o estado do menu, o armazenamento das opções e o provider do TanStack Query.
+- `src/components/GameArena/` controla inicialização do PixiJS, carregamento de assets, tamanho do canvas, tela cheia, HUD semântico, controles de toque e desmontagem.
+- `src/game/` contém a simulação atualizada pelo ticker, cálculos de movimento e colisão, controles de teclado e toque, surgimento de inimigos, projéteis, indicadores de vida e o profiler opcional.
+- `src/services/` contém o cliente Axios compartilhado e a API/repositório de partidas; `src/mocks/` contém handlers e fixtures do MSW.
+- `tests/` cobre lógica pura e componentes React; `e2e/` contém fluxos Playwright e snapshots versionados do Chromium no Windows.
 
-React handles menus and infrequent HUD, pause, and result updates; PixiJS owns continuous combat state and rendering. See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for lifecycle, simulation, and data-flow detail.
+React gerencia os menus e as atualizações ocasionais de HUD, pausa e resultado; o PixiJS controla o estado contínuo e a renderização do combate. Consulte [`ARCHITECTURE.md`](./ARCHITECTURE.md) para detalhes do ciclo de vida, da simulação e do fluxo de dados.
 
-## Ranking, history, and network scenarios
+## Ranking, histórico e cenários de rede
 
-Ranking is filtered by the selected match duration and spawn interval, sorted by score descending, then completion time and player ID for deterministic ties. The displayed ranking and local player's history are paginated in groups of five. The client requests up to 20 mock records at a time, merges them with local records, and slices the combined list into UI pages.
+O ranking é filtrado pela duração e pelo intervalo entre surgimentos escolhidos para a partida. A ordenação usa pontuação decrescente, depois horário de conclusão e identificação do jogador para desempate determinístico. O ranking e o histórico do jogador local são paginados em grupos de cinco. O cliente solicita até 20 registros mock por vez, combina os resultados com os registros locais e divide a lista combinada em páginas para a interface.
 
-The MSW service worker provides the demo API. Other captains are fixtures; it does not represent a remote service. A completed result is first saved to the local pending outbox, then submitted by Axios with the match ID as its idempotency key. Pending and confirmed local records and options use browser `localStorage`; pending submissions are retried on app startup or with **Tentar registrar novamente**. The in-memory collection maintained by the MSW worker is lost when that worker restarts, while the browser's local records remain. The history view is for the local player; other ranking entries are fixtures. Clearing browser storage removes local records and options.
+O worker do MSW fornece a API de demonstração. Os demais capitães são fixtures; não há serviço remoto. Um resultado concluído é salvo primeiro na fila local de envios pendentes e depois enviado pelo Axios, usando a identificação da partida como chave de idempotência. Opções e registros locais confirmados ou pendentes são guardados no `localStorage` do navegador. Envios pendentes são tentados novamente ao abrir a aplicação ou pelo botão **Tentar registrar novamente**. A coleção em memória mantida pelo MSW se perde quando o worker reinicia, mas os registros locais do navegador permanecem. O histórico mostra apenas as partidas do jogador local; as outras entradas do ranking são fixtures. Limpar os dados do navegador apaga os registros e as opções locais.
 
-Open **Ranking** or **Histórico** and select **Cenário de rede (MSW)** to reproduce these cases:
+Abra **Ranking** ou **Histórico** e selecione **Cenário de rede (MSW)** para reproduzir estas situações:
 
-| Scenario                            | Behavior                                                                                                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sucesso                             | Normal mock API responses and match recording.                                                                                                         |
-| Listas vazias                       | Empty ranking and history responses.                                                                                                                   |
-| Resposta lenta                      | Fixed 650 ms delay for list requests.                                                                                                                  |
-| Latência variável                   | Repeatable sequence of different delays.                                                                                                               |
-| Respostas fora de ordem             | Alternating 900 ms and 80 ms list-response delays.                                                                                                     |
-| Falha de conexão                    | MSW returns a network error for list and submission requests.                                                                                          |
-| Resposta HTTP 400                   | Query returns HTTP 400.                                                                                                                                |
-| Erro no ranking / Erro no histórico | The selected list endpoint returns HTTP 503.                                                                                                           |
-| Falha ao registrar                  | Match submission returns HTTP 503 and remains pending locally.                                                                                         |
-| Timeout no registro                 | MSW accepts the match, then delays its response beyond Axios's 5-second timeout; retrying uses the same ID and does not duplicate the accepted record. |
+| Cenário                             | Comportamento                                                                                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sucesso                             | Respostas normais da API mock e registro de partidas.                                                                                                             |
+| Listas vazias                       | Respostas vazias para ranking e histórico.                                                                                                                        |
+| Resposta lenta                      | Atraso fixo de 650 ms nas consultas de listas.                                                                                                                    |
+| Latência variável                   | Sequência repetível de diferentes atrasos.                                                                                                                        |
+| Respostas fora de ordem             | Atrasos alternados de 900 ms e 80 ms nas respostas de listas.                                                                                                     |
+| Falha de conexão                    | O MSW retorna erro de rede nas consultas e nos envios.                                                                                                            |
+| Resposta HTTP 400                   | A consulta retorna HTTP 400.                                                                                                                                      |
+| Erro no ranking / Erro no histórico | O endpoint da lista selecionada retorna HTTP 503.                                                                                                                 |
+| Falha ao registrar                  | O envio retorna HTTP 503 e permanece pendente no armazenamento local.                                                                                             |
+| Timeout no registro                 | O MSW aceita a partida, mas atrasa a resposta além do timeout de 5 segundos do Axios; a nova tentativa usa a mesma identificação e não duplica o registro aceito. |
 
-Choose **Restaurar dados de demonstração** to clear the MSW worker's accepted collection and the local match outbox, and reset its deterministic delay counters. The selected scenario and game options are stored separately and are not reset by this button. These are fixed, repeatable demonstrations; they do not model arbitrary latency distributions or every real browser/network race. The worker's records are in-memory rather than durable server storage, so this is not equivalent to remote persistence.
+Escolha **Restaurar dados de demonstração** para limpar a coleção aceita pelo MSW, a fila local de partidas e os contadores de atraso determinístico. O cenário escolhido e as opções de jogo são armazenados separadamente e não são redefinidos por esse botão. Os cenários são demonstrações fixas e reproduzíveis; eles não simulam distribuições arbitrárias de latência nem todas as condições reais de rede ou do navegador. Os registros do worker ficam em memória, portanto não equivalem à persistência de um servidor remoto.
 
-## Performance profiling
+## Perfil de desempenho
 
-Profiling is available only from the Vite development server. Run `npm run dev`, open the app with `?profile=1`, set duration to 180 seconds and spawn interval to 1 second in **Configurações**, then start a match. Collection begins with the PixiJS runtime. It ends at the configured duration or earlier on defeat, arena teardown, or a manual `stop()`; an early-ended session is not a complete three-minute run.
+O profiler só está disponível no servidor de desenvolvimento do Vite. Execute `npm run dev`, abra a aplicação com `?profile=1`, configure a duração para 180 segundos e o intervalo de surgimento para 1 segundo em **Configurações** e inicie uma partida. A coleta começa junto com o runtime PixiJS. Ela termina ao atingir a duração configurada ou antes disso se o jogador for derrotado, a arena for desmontada ou alguém chamar `stop()` manualmente. Uma sessão encerrada antes do tempo não é um perfil completo de três minutos.
 
-While the arena is mounted, use the browser developer console:
+Com a arena aberta, use o console de desenvolvimento do navegador:
 
 ```js
 window.__PIRATE_BATTLE_PROFILE__.status();
@@ -118,23 +118,23 @@ window.__PIRATE_BATTLE_PROFILE__.downloadJSON();
 window.__PIRATE_BATTLE_PROFILE__.downloadCSV();
 ```
 
-`stop()` finalizes early; `result()` is available after collection finishes. JSON contains per-second windows and retained ticker intervals; CSV contains summary, window, and interval rows. Analyze actual exports with `npm run profile:report -- run-1.json run-2.json`. The reported FPS counts PixiJS ticker callbacks, not frames confirmed as presented by the browser. `performance.memory` is a non-standard API and may be unavailable. The tool is dev-only, so its results describe that development runtime and are not production-build measurements.
+`stop()` encerra a coleta antes do tempo; `result()` fica disponível quando a coleta termina. O JSON contém janelas por segundo e intervalos retidos do ticker; o CSV contém linhas de resumo, janelas e intervalos. Analise arquivos exportados reais com `npm run profile:report -- run-1.json run-2.json`. O FPS informado conta callbacks do ticker PixiJS, não quadros confirmados como apresentados pelo navegador. `performance.memory` é uma API não padronizada e pode estar indisponível. Como a ferramenta só funciona em desenvolvimento, os resultados descrevem esse ambiente e não representam medições do build de produção.
 
-**No real three-minute profile or five-cycle memory evidence has been collected yet.** Do not treat implementation or automated tests as performance results. See [`DELIVERY_READINESS.md`](./DELIVERY_READINESS.md) for the full collection protocol, evidence gaps, test results, and metric definitions.
+**Ainda não foram coletados um perfil real de três minutos nem evidências de memória após cinco ciclos.** Não trate a implementação ou os testes automatizados como resultados de desempenho. Consulte [`DELIVERY_READINESS.md`](./DELIVERY_READINESS.md) para ver o protocolo completo de coleta, as lacunas de evidência, os resultados dos testes e as definições das métricas.
 
-## Deployment
+## Deploy
 
-The reported public URL is [https://piratebattle-beta.vercel.app/](https://piratebattle-beta.vercel.app/). Its current availability and correspondence to this checkout were not independently verified during this audit, and this task did not publish a deployment.
+A URL pública informada é [https://piratebattle-beta.vercel.app/](https://piratebattle-beta.vercel.app/). A disponibilidade atual e a correspondência entre o site e este checkout não foram verificadas de forma independente nesta auditoria, e este trabalho não publicou uma nova versão.
 
-To reproduce a static production build, run `npm ci` followed by `npm run build`, then publish the generated `dist/` directory. Keep `mockServiceWorker.js` at the site root; the default production build enables MSW and requires a secure origin for service workers (HTTPS, or localhost for local testing). After deployment, open or reload the public URL and verify the menu, arena, and mock ranking/history. This repository has no provider-specific deployment configuration.
+Para reproduzir um build estático de produção, execute `npm ci` e depois `npm run build`; publique o diretório `dist/` gerado. Mantenha `mockServiceWorker.js` na raiz do site. O build de produção habilita o MSW por padrão e exige uma origem segura para service workers (HTTPS ou localhost nos testes locais). Após o deploy, abra ou recarregue a URL pública e verifique o menu, a arena e o ranking/histórico mock. Este repositório não contém configuração específica de provedor de deploy.
 
-## Known limits and delivery evidence
+## Limitações e evidências para entrega
 
-- The ranking and history APIs are MSW demonstrations, not a backend; worker-accepted records live in memory. Local options, pending submissions, and completed local records use browser storage.
-- Other captains are fixtures. The UI's history page is local-player only. Browser-storage restrictions can prevent local persistence.
-- A page reload returns to the menu; it does not restore the result overlay, though the completed record remains in local history when local storage is available.
-- Asset loading presents a visible status but no percentage progress indicator. There are no sound effects.
-- The touch interface is available below the arena and the layout responds to resizing; Playwright coverage is Chromium desktop, not a full mobile/browser matrix.
-- Real three-minute gameplay profiling, evidence over five start/play/exit cycles, and an independent check of the public deployment remain pending. The user-reported deployment URL is not treated as verified evidence.
-- The default parallel Playwright run showed timer/snapshot failures under concurrent browser load after a prior 18/18 pass; a single-worker rerun passed all 19 tests. No test assertions were weakened.
-- The current Node `v24.14.1` environment emitted `EBADENGINE` warnings for locked `jsdom` dependencies requesting Node `24.15.0` or newer in the 24.x line. Typecheck, lint, build, and the recorded tests still passed in that environment.
+- As APIs de ranking e histórico são demonstrações via MSW, não um backend. Os registros aceitos pelo worker ficam em memória. Opções, envios pendentes e partidas concluídas locais são armazenados no navegador.
+- Os outros capitães são fixtures. A tela de histórico mostra apenas o jogador local. Restrições do navegador podem impedir a persistência local.
+- Ao recarregar a página, a aplicação volta ao menu; o painel de resultado não é restaurado, embora o registro concluído permaneça no histórico local quando o armazenamento do navegador está disponível.
+- O carregamento dos assets mostra um estado visível, mas não uma porcentagem de progresso. O jogo não tem efeitos sonoros.
+- Há controles de toque abaixo da arena e o layout responde a redimensionamentos; a cobertura Playwright é para Chromium em desktop e não representa uma matriz completa de dispositivos móveis e navegadores.
+- Continuam pendentes o perfil real de três minutos, as evidências dos cinco ciclos de iniciar/jogar/sair e a verificação independente do deploy público. A URL informada pelo usuário não é tratada como evidência verificada.
+- A execução paralela padrão do Playwright apresentou falhas de timer e snapshot sob carga concorrente, depois de uma execução anterior com 18/18 aprovados. A repetição em um único worker passou nos 19 testes. Nenhuma asserção foi enfraquecida.
+- O ambiente atual, com Node `v24.14.1`, emitiu avisos `EBADENGINE` para dependências `jsdom` travadas que pedem Node `24.15.0` ou superior na linha 24.x. Typecheck, lint, build e os testes registrados ainda passaram nesse ambiente.
